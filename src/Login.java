@@ -1,95 +1,41 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.HashMap;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-public class Login extends JFrame {
-    private HashMap<String, String> userCredentials;
+public class Login implements HttpHandler {
 
-    public Login() {
-        initialize();
-        initializeUserCredentials();
-    }
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
 
-    private void initialize() {
-        setTitle("Login");
-        setSize(500, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        JPanel panel = new JPanel();
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        setContentPane(panel);
-        panel.setLayout(new GridLayout(6,1,8,8));
-        ImageIcon image = new ImageIcon("C:\\Users\\archi\\IdeaProjects\\MIniProject\\src\\logo.png");
-        setIconImage(image.getImage());
-        panel.setBackground(new Color(219,254,184));
-
-        JTextField usernameField = new JTextField();
-        panel.add(new JLabel("Username:"));
-        panel.add(usernameField);
-
-        JPasswordField passwordField = new JPasswordField();
-        panel.add(new JLabel("Password:"));
-        panel.add(passwordField);
-
-        JButton loginButton = new JButton("Login");
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleLoginButton(usernameField.getText(), new String(passwordField.getPassword()));
-            }
-        });
-        panel.add(loginButton);
-        loginButton.setBackground(new Color(159,196,144));
-
-        JButton cancelButton = new JButton("Cancel");
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                handleCancelButton();
-            }
-        });
-        panel.add(cancelButton);
-        cancelButton.setBackground(new Color(159,196,144));
-
-        setVisible(true);
-    }
-
-    private void initializeUserCredentials() {
-        userCredentials = new HashMap<>();
-        userCredentials.put("Archita", "any1");
-        userCredentials.put("Sanjana", "sns1");
-        userCredentials.put("Priyal", "ppt1");
-        userCredentials.put("Aishwarya", "aaw1");
-        userCredentials.put("Shrimay", "ssy1");
-
-    }
-
-    private void handleLoginButton(String username, String password) {
-        if (userCredentials.containsKey(username) && userCredentials.get(username).equals(password)) {
-            setVisible(false);
-            Evaluation doshaAssessmentFrame = new Evaluation();
-            doshaAssessmentFrame.setVisible(true);
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Invalid username or password.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+        // ✅ Handle CORS preflight
+        if (exchange.getRequestMethod().equalsIgnoreCase("OPTIONS")) {
+            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "POST, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
+            exchange.sendResponseHeaders(204, -1);
+            return;
         }
-    }
 
-    private void handleCancelButton() {
-        System.exit(0);
-    }
+        if (!exchange.getRequestMethod().equalsIgnoreCase("POST")) {
+            exchange.sendResponseHeaders(405, -1);
+            return;
+        }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new Login();
-            }
-        });
+        String body = new String(
+                exchange.getRequestBody().readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+
+        String response = body.contains("admin") && body.contains("admin123")
+                ? "{\"status\":\"success\"}"
+                : "{\"status\":\"failure\"}";
+
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+
+        exchange.sendResponseHeaders(200, response.length());
+        exchange.getResponseBody().write(response.getBytes());
+        exchange.close();
     }
 }
